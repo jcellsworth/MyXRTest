@@ -1,139 +1,233 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>WebAR Video Overlay</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Latest MindAR and A-Frame -->
-  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
-  <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: black;
-    }
-
-    #startButton {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 20px 40px;
-      font-size: 20px;
-      background-color: #2196f3;
-      color: white;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      z-index: 10;
-    }
-
-    #errorMessage {
-      display: none;
-      position: absolute;
-      top: 60%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 18px;
-      text-align: center;
-      padding: 20px;
-      background-color: rgba(255,0,0,0.7);
-      border-radius: 10px;
-      z-index: 10;
-    }
-
-    #arScene {
-      width: 100vw;
-      height: 100vh;
-      position: absolute;
-      top: 0;
-      left: 0;
-      display: none;
-    }
-  </style>
-</head>
-
-<body>
-  <button id="startButton">Start AR</button>
-  <div id="errorMessage">Camera access denied or unavailable. Please check browser settings or try another browser.</div>
-
-  <a-scene
-    id="arScene"
-    mindar-image="imageTargetSrc: https://jcellsworth.github.io/MyXRTest/website/targets.mind; autoStart: false;"
-    embedded
-    color-space="sRGB"
-    renderer="logarithmicDepthBuffer: true;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-  >
-    <a-assets>
-      <video
-        id="targetVideo"
-        src="https://jcellsworth.github.io/MyXRTest/website/AR_Video_Poster.mp4"
-        preload="auto"
-        loop
-        muted
-        crossorigin="anonymous"
-        playsinline
-        webkit-playsinline
-      ></video>
-    </a-assets>
-
-    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
-    <a-entity mindar-image-target="targetIndex: 0">
-      <a-video
-        src="#targetVideo"
-        width="1"
-        height="0.5625"
-        position="0 0 0"
-        rotation="0 0 0"
-      ></a-video>
-    </a-entity>
-  </a-scene>
-
-  <script>
-    const startButton = document.getElementById('startButton');
-    const arScene = document.querySelector('#arScene');
-    const video = document.getElementById('targetVideo');
-    const errorMessage = document.getElementById('errorMessage');
-
-    startButton.addEventListener('click', async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        console.log("Camera stream acquired:", stream);
-        arScene.style.display = 'block';
-        startButton.style.display = 'none';
-
-        const sceneEl = document.querySelector('a-scene');
-        if (sceneEl.hasLoaded) {
-          sceneEl.components['mindar-image'].start();
-        } else {
-          sceneEl.addEventListener('loaded', () => {
-            sceneEl.components['mindar-image'].start();
-          });
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR Video Tracking</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
         }
-      } catch (err) {
-        console.error("Camera access error:", err);
-        errorMessage.style.display = 'block';
-      }
-    });
+        .example-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #info-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            z-index: 2000;
+        }
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-family: sans-serif;
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 20px;
+            z-index: 3000;
+        }
+        #loading-overlay p {
+            margin-top: 20px;
+            font-size: 1rem;
+            color: #ccc;
+        }
+        #ar-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+        #ar-button:hover {
+            background-color: #2563eb;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
 
-    AFRAME.registerComponent('play-on-target', {
-      init: function () {
-        this.el.addEventListener('targetFound', () => {
-          video.play();
+    <div class="example-container">
+        <!-- A-Frame scene for WebXR. The mindar-image component handles the AR tracking -->
+        <a-scene mindar-image="imageTargetSrc: #targets-mind; autoStart: false"
+            color-space="sRGB"
+            renderer="colorManagement: true, physicallyCorrectLights"
+            vr-mode-ui="enabled: false">
+            <!-- The device-orientation-permission-ui="enabled: false" attribute has been removed to allow the browser to prompt for camera permissions. -->
+
+            <!-- Assets to be loaded before the scene starts -->
+            <a-assets timeout="30000">
+                <!-- Using raw.githubusercontent.com for reliable asset delivery -->
+                <a-asset-item id="targets-mind" src="https://raw.githubusercontent.com/jcellsworth/MyXRTest/main/targets.mind" crossorigin="anonymous"></a-asset-item>
+                <!-- Corrected video source URL and added playsinline for compatibility -->
+                <video id="video-asset" src="https://raw.githubusercontent.com/jcellsworth/MyXRTest/main/AR_Video_Poster.webm" loop crossorigin="anonymous" playsinline webkit-playsinline></video>
+            </a-assets>
+
+            <!-- A-Frame camera with look-controls disabled for AR -->
+            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+            <!-- A-Frame entity that will be controlled by MindAR tracking -->
+            <!-- The video will be child of this entity, so it moves with the target -->
+            <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
+                <!-- A plane to display the video, perfectly anchored to the tracked image -->
+                <!-- Dimensions are set to a 16:9 aspect ratio (1 / 16 * 9 = 0.5625) -->
+                <a-plane
+                    src="#video-asset"
+                    rotation="0 0 0"
+                    position="0 0 0.05"
+                    width="1"
+                    height="0.5625"
+                    opacity="1"
+                    ></a-plane>
+            </a-entity>
+        </a-scene>
+    </div>
+
+    <!-- UI Overlays -->
+    <div id="loading-overlay">
+        Loading AR Assets...
+        <p>Please allow camera access when prompted.</p>
+    </div>
+    <div id="info-overlay" class="hidden">
+        Scan the target image to see the video!
+    </div>
+    
+    <button id="ar-button" class="hidden">Start AR</button>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const sceneEl = document.querySelector('a-scene');
+            const assetsEl = document.querySelector('a-assets');
+            const targetEntity = document.querySelector('#target-entity');
+            const videoAsset = document.querySelector('#video-asset');
+            const arButton = document.querySelector('#ar-button');
+            const loadingOverlay = document.querySelector('#loading-overlay');
+            const infoOverlay = document.querySelector('#info-overlay');
+            const targetsMind = document.querySelector('#targets-mind');
+
+            let arReady = false;
+            let assetsLoaded = false;
+            
+            const loadingTimeout = setTimeout(() => {
+                if (!arReady) {
+                    console.error("AR initialization timed out. Please check your browser console for errors.");
+                    loadingOverlay.innerHTML = "Error: AR failed to initialize. This can happen on desktop browsers. Please try a mobile device and grant camera permission when prompted.";
+                }
+            }, 30000);
+
+            arButton.addEventListener('click', () => {
+                console.log("AR button clicked. Attempting to start.");
+                try {
+                    // This is the crucial part that triggers the AR session and camera permission prompt
+                    sceneEl.setAttribute('mindar-image', 'autoStart: true');
+                    arButton.style.display = 'none';
+                    infoOverlay.classList.remove('hidden');
+                } catch (e) {
+                    console.error("Error starting AR session:", e);
+                    infoOverlay.textContent = "Error: " + e.message;
+                    infoOverlay.classList.remove('hidden');
+                }
+            });
+
+            targetEntity.addEventListener('targetfound', event => {
+                console.log("Target found, playing video");
+                // The video must be explicitly played.
+                videoAsset.play();
+                infoOverlay.classList.add('hidden');
+            });
+
+            targetEntity.addEventListener('targetlost', event => {
+                console.log("Target lost, pausing video");
+                // The video must be explicitly paused.
+                videoAsset.pause();
+            });
+
+            sceneEl.addEventListener('arReady', (event) => {
+                console.log("MindAR is ready to start.");
+                arReady = true;
+                clearTimeout(loadingTimeout);
+                checkReadyState();
+            });
+
+            // Event listener for AR initialization errors, often due to camera permission issues
+            sceneEl.addEventListener('arError', (event) => {
+                console.error("MindAR error:", event.detail.error);
+                loadingOverlay.innerHTML = `Error initializing AR: ${event.detail.error}<br>Please ensure you've granted camera permissions.`;
+                loadingOverlay.classList.remove('hidden');
+                clearTimeout(loadingTimeout);
+            });
+
+            assetsEl.addEventListener('timeout', () => {
+                console.error("A-Frame assets timed out.");
+                loadingOverlay.textContent = "Asset loading timed out. Please check your network connection or if the asset URLs are valid.";
+                loadingOverlay.classList.remove('hidden');
+                clearTimeout(loadingTimeout);
+            });
+
+            targetsMind.addEventListener('loaded', () => {
+                console.log("targets.mind loaded successfully.");
+            });
+            targetsMind.addEventListener('error', (e) => {
+                console.error("Error loading targets.mind:", e);
+                loadingOverlay.textContent = "Error loading image target file. Please check the URL.";
+                loadingOverlay.classList.remove('hidden');
+            });
+
+            videoAsset.addEventListener('loadeddata', () => {
+                console.log("Video asset loaded successfully.");
+            });
+            videoAsset.addEventListener('error', (e) => {
+                console.error("Error loading video asset:", e);
+                loadingOverlay.textContent = "Error loading video file. Please check the URL and ensure it's a valid video format.";
+                loadingOverlay.classList.remove('hidden');
+            });
+            
+            assetsEl.addEventListener('loaded', () => {
+                console.log("A-Frame assets are loaded.");
+                assetsLoaded = true;
+                checkReadyState();
+            });
+
+            const checkReadyState = () => {
+                if (arReady && assetsLoaded) {
+                    loadingOverlay.classList.add('hidden');
+                    arButton.classList.remove('hidden');
+                }
+            };
         });
-      }
-    });
-
-    document.querySelector('[mindar-image-target]').setAttribute('play-on-target', '');
-  </script>
+    </script>
 </body>
 </html>
