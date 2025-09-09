@@ -143,13 +143,14 @@
             const loadingTimeout = setTimeout(() => {
                 if (!arReady) {
                     console.error("AR initialization timed out. Please check your browser console for errors.");
-                    loadingOverlay.innerHTML = "Error: AR failed to initialize. Please try refreshing the page and granting camera permission when prompted.";
+                    loadingOverlay.innerHTML = "Error: AR failed to initialize. This can happen on desktop browsers. Please try a mobile device and grant camera permission when prompted.";
                 }
             }, 30000);
 
             arButton.addEventListener('click', () => {
                 console.log("AR button clicked. Attempting to start.");
                 try {
+                    // This is the crucial part that triggers the AR session and camera permission prompt
                     sceneEl.setAttribute('mindar-image', 'autoStart: true');
                     arButton.style.display = 'none';
                     infoOverlay.classList.remove('hidden');
@@ -162,12 +163,14 @@
 
             targetEntity.addEventListener('targetfound', event => {
                 console.log("Target found, playing video");
+                // The video must be explicitly played.
                 videoAsset.play();
                 infoOverlay.classList.add('hidden');
             });
 
             targetEntity.addEventListener('targetlost', event => {
                 console.log("Target lost, pausing video");
+                // The video must be explicitly paused.
                 videoAsset.pause();
             });
 
