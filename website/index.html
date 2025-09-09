@@ -10,30 +10,13 @@
         body {
             margin: 0;
             overflow: hidden;
+            background-color: #f0f0f0;
         }
         .example-container {
             position: relative;
             width: 100%;
             height: 100vh;
             overflow: hidden;
-        }
-        #video-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: black;
-            color: white;
-            z-index: 1000;
-        }
-        #video-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
         }
         #info-overlay {
             position: absolute;
@@ -45,6 +28,21 @@
             border-radius: 8px;
             font-family: sans-serif;
             z-index: 2000;
+        }
+        #loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-family: sans-serif;
+            font-size: 1.5rem;
+            z-index: 3000;
         }
         #ar-button {
             position: absolute;
@@ -67,26 +65,25 @@
             background-color: #2563eb;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
 
     <div class="example-container">
-        <!-- Placeholder for the video that will be played in the AR scene -->
-        <!-- This video has a 16:9 aspect ratio, which is common for landscape images -->
-        <video id="video-asset" src="https://github.com/jcellsworth/MyXRTest/raw/refs/heads/main/AR_Video_Poster.mp4" loop crossorigin="anonymous"></video>
-
         <!-- A-Frame scene for WebXR. The mindar-image component handles the AR tracking -->
-        <a-scene mindar-image="imageTargetSrc: https://github.com/jcellsworth/MyXRTest/raw/refs/heads/main/targets.mind; autoStart: false"
+        <a-scene mindar-image="imageTargetSrc: #targets-mind; autoStart: false"
             color-space="sRGB"
             renderer="colorManagement: true, physicallyCorrectLights"
             vr-mode-ui="enabled: false"
             device-orientation-permission-ui="enabled: false">
 
             <!-- Assets to be loaded before the scene starts -->
-            <a-assets>
-                <!-- This asset links to the video element we defined above -->
-                <a-asset-item id="video-item" src="#video-asset"></a-asset-item>
+            <a-assets timeout="10000"> <!-- Increased timeout to 10 seconds -->
+                <a-asset-item id="targets-mind" src="https://github.com/jcellsworth/MyXRTest/raw/refs/heads/main/targets.mind" crossorigin="anonymous"></a-asset-item>
+                <video id="video-asset" src="https://github.com/jcellsworth/MyXRTest/raw/refs/heads/main/AR_Video_Poster.mp4" loop crossorigin="anonymous"></video>
             </a-assets>
 
             <!-- A-Frame camera with look-controls disabled for AR -->
@@ -98,7 +95,7 @@
                 <!-- A plane to display the video, perfectly anchored to the tracked image -->
                 <!-- Dimensions are set to a 16:9 aspect ratio (1 / 16 * 9 = 0.5625) -->
                 <a-plane
-                    src="#video-item"
+                    src="#video-asset"
                     rotation="0 0 0"
                     position="0 0 0.05"
                     width="1"
@@ -109,7 +106,11 @@
         </a-scene>
     </div>
 
-    <div id="info-overlay">
+    <!-- UI Overlays -->
+    <div id="loading-overlay">
+        Loading AR Assets...
+    </div>
+    <div id="info-overlay" class="hidden">
         Scan the target image to see the video!
     </div>
     
@@ -118,25 +119,38 @@
     <script>
         document.addEventListener("DOMContentLoaded", () => {
             const sceneEl = document.querySelector('a-scene');
+            const assetsEl = document.querySelector('a-assets');
             const targetEntity = document.querySelector('#target-entity');
             const videoAsset = document.querySelector('#video-asset');
             const arButton = document.querySelector('#ar-button');
+            const loadingOverlay = document.querySelector('#loading-overlay');
             const infoOverlay = document.querySelector('#info-overlay');
 
             // --- A-Frame MindAR Events for tracking logic ---
+            let arReady = false;
+            let assetsLoaded = false;
 
             // Start the AR session when the user clicks the button
             arButton.addEventListener('click', () => {
-                sceneEl.setAttribute('mindar-image', 'autoStart: true');
-                arButton.style.display = 'none';
-                infoOverlay.style.display = 'block';
+                console.log("AR button clicked.");
+                try {
+                    // Set the attribute to true to start the AR session.
+                    sceneEl.setAttribute('mindar-image', 'autoStart: true');
+                    arButton.style.display = 'none';
+                    infoOverlay.classList.remove('hidden');
+                } catch (e) {
+                    // Log any errors that occur during the process.
+                    console.error("Error starting AR session:", e);
+                    infoOverlay.textContent = "Error: " + e.message;
+                    infoOverlay.classList.remove('hidden');
+                }
             });
 
             // Handle the 'targetfound' event to play the video
             targetEntity.addEventListener('targetfound', event => {
                 console.log("Target found, playing video");
                 videoAsset.play();
-                infoOverlay.style.display = 'none';
+                infoOverlay.classList.add('hidden');
             });
 
             // Handle the 'targetlost' event to pause the video
@@ -147,11 +161,26 @@
 
             // Set up a listener for the AR ready event
             sceneEl.addEventListener('arReady', (event) => {
-                // Now that AR is ready, show the start button
-                arButton.style.display = 'block';
+                console.log("AR scene is ready.");
+                arReady = true;
+                checkReadyState();
             });
-        });
+            
+            // Listen for when all assets are loaded
+            assetsEl.addEventListener('loaded', () => {
+                console.log("A-Frame assets are loaded.");
+                assetsLoaded = true;
+                checkReadyState();
+            });
 
+            // Check if both the AR scene and assets are ready before showing the button
+            const checkReadyState = () => {
+                if (arReady && assetsLoaded) {
+                    loadingOverlay.classList.add('hidden');
+                    arButton.classList.remove('hidden');
+                }
+            };
+        });
     </script>
 </body>
 </html>
