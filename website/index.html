@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,8 +7,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   
   <!-- MindAR and A-Frame -->
-  <script src="https://cdn.jsdelivr.net/npm/aframeframe.min.js
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></scripttml {
+  <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body, html {
       margin: 0;
       padding: 0;
       overflow: hidden;
@@ -52,7 +56,14 @@
         preload="auto"
         loop
         crossorigin="anonymous"
-mage-target="targetIndex: 0">
+        playsinline
+        webkit-playsinline
+      ></video>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0">
       <a-video
         src="#targetVideo"
         width="1"
@@ -73,4 +84,24 @@ mage-target="targetIndex: 0">
       arScene.style.display = 'block';
 
       const sceneEl = document.querySelector('a-scene');
-      sceneEl.components['mindar-image'].start
+      sceneEl.components['mindar-image'].start();
+
+      try {
+        await video.play();
+      } catch (err) {
+        console.warn('Autoplay blocked, will play on target detection');
+      }
+    });
+
+    AFRAME.registerComponent('play-on-target', {
+      init: function () {
+        this.el.addEventListener('targetFound', () => {
+          video.play();
+        });
+      }
+    });
+
+    document.querySelector('[mindar-image-target]').setAttribute('play-on-target', '');
+  </script>
+</body>
+</html>
