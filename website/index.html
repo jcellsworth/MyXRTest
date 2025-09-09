@@ -78,6 +78,7 @@
         src="https://jcellsworth.github.io/MyXRTest/website/AR_Video_Poster.mp4"
         preload="auto"
         loop
+        muted
         crossorigin="anonymous"
         playsinline
         webkit-playsinline
@@ -112,27 +113,29 @@
       unsupportedMessage.style.display = 'block';
     }
 
-    startButton.addEventListener('click', () => {
-      startButton.style.display = 'none';
-      arScene.style.display = 'block';
+    startButton.addEventListener('click', async () => {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true });
+        startButton.style.display = 'none';
+        arScene.style.display = 'block';
 
-      const sceneEl = document.querySelector('a-scene');
-
-      if (sceneEl.hasLoaded) {
-        console.log("Scene already loaded, starting MindAR...");
-        sceneEl.components['mindar-image'].start();
-      } else {
-        sceneEl.addEventListener('loaded', () => {
-          console.log("Scene loaded, starting MindAR...");
+        const sceneEl = document.querySelector('a-scene');
+        if (sceneEl.hasLoaded) {
           sceneEl.components['mindar-image'].start();
-        });
+        } else {
+          sceneEl.addEventListener('loaded', () => {
+            sceneEl.components['mindar-image'].start();
+          });
+        }
+      } catch (err) {
+        alert("Camera access denied or unavailable.");
+        console.error("Camera access error:", err);
       }
     });
 
     AFRAME.registerComponent('play-on-target', {
       init: function () {
         this.el.addEventListener('targetFound', () => {
-          console.log("Target found, playing video...");
           video.play();
         });
       }
