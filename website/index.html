@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR Video Tracking</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+        .example-container {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: black;
+            color: white;
+            z-index: 1000;
+        }
+        #video-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        #info-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: sans-serif;
+            z-index: 2000;
+        }
+        #ar-button {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            z-index: 2000;
+        }
+        #ar-button:hover {
+            background-color: #2563eb;
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="example-container">
+        <!-- Placeholder for the video that will be played in the AR scene -->
+        <!-- This video has a 16:9 aspect ratio, which is common for landscape images -->
+        <video id="video-asset" src="https://github.com/jcellsworth/MyXRTest/raw/refs/heads/main/AR_Video_Poster.mp4" loop crossorigin="anonymous"></video>
+
+        <!-- A-Frame scene for WebXR. The mindar-image component handles the AR tracking -->
+        <a-scene mindar-image="imageTargetSrc: https://github.com/jcellsworth/MyXRTest/raw/refs/heads/main/targets.mind; autoStart: false"
+            color-space="sRGB"
+            renderer="colorManagement: true, physicallyCorrectLights"
+            vr-mode-ui="enabled: false"
+            device-orientation-permission-ui="enabled: false">
+
+            <!-- Assets to be loaded before the scene starts -->
+            <a-assets>
+                <!-- This asset links to the video element we defined above -->
+                <a-asset-item id="video-item" src="#video-asset"></a-asset-item>
+            </a-assets>
+
+            <!-- A-Frame camera with look-controls disabled for AR -->
+            <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+            <!-- A-Frame entity that will be controlled by MindAR tracking -->
+            <!-- The video will be child of this entity, so it moves with the target -->
+            <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
+                <!-- A plane to display the video, perfectly anchored to the tracked image -->
+                <!-- Dimensions are set to a 16:9 aspect ratio (1 / 16 * 9 = 0.5625) -->
+                <a-plane
+                    src="#video-item"
+                    rotation="0 0 0"
+                    position="0 0 0.05"
+                    width="1"
+                    height="0.5625"
+                    opacity="1"
+                    ></a-plane>
+            </a-entity>
+        </a-scene>
+    </div>
+
+    <div id="info-overlay">
+        Scan the target image to see the video!
+    </div>
+    
+    <button id="ar-button" class="hidden">Start AR</button>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const sceneEl = document.querySelector('a-scene');
+            const targetEntity = document.querySelector('#target-entity');
+            const videoAsset = document.querySelector('#video-asset');
+            const arButton = document.querySelector('#ar-button');
+            const infoOverlay = document.querySelector('#info-overlay');
+
+            // --- A-Frame MindAR Events for tracking logic ---
+
+            // Start the AR session when the user clicks the button
+            arButton.addEventListener('click', () => {
+                sceneEl.setAttribute('mindar-image', 'autoStart: true');
+                arButton.style.display = 'none';
+                infoOverlay.style.display = 'block';
+            });
+
+            // Handle the 'targetfound' event to play the video
+            targetEntity.addEventListener('targetfound', event => {
+                console.log("Target found, playing video");
+                videoAsset.play();
+                infoOverlay.style.display = 'none';
+            });
+
+            // Handle the 'targetlost' event to pause the video
+            targetEntity.addEventListener('targetlost', event => {
+                console.log("Target lost, pausing video");
+                videoAsset.pause();
+            });
+
+            // Set up a listener for the AR ready event
+            sceneEl.addEventListener('arReady', (event) => {
+                // Now that AR is ready, show the start button
+                arButton.style.display = 'block';
+            });
+        });
+
+    </script>
+</body>
+</html>
