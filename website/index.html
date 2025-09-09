@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <title>WebAR Video Overlay</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
+
   <!-- MindAR and A-Frame -->
   <script src="https://cdn.jsdelivr.net/npm/aframe@1.4.2/dist/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.1.4/dist/mindar-image-aframe.prod.js"></script>
@@ -33,6 +33,20 @@
       z-index: 10;
     }
 
+    #unsupportedMessage {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      text-align: center;
+      padding: 20px;
+      background-color: rgba(0,0,0,0.7);
+      border-radius: 10px;
+    }
+
     #arScene {
       display: none;
     }
@@ -41,6 +55,7 @@
 
 <body>
   <button id="startButton">Start AR</button>
+  <div id="unsupportedMessage">Your browser does not support WebAR. Please use Chrome or Safari on a compatible device.</div>
 
   <a-scene
     id="arScene"
@@ -78,6 +93,16 @@
     const startButton = document.getElementById('startButton');
     const arScene = document.querySelector('#arScene');
     const video = document.getElementById('targetVideo');
+    const unsupportedMessage = document.getElementById('unsupportedMessage');
+
+    function isWebARSupported() {
+      return navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+    }
+
+    if (!isWebARSupported()) {
+      startButton.style.display = 'none';
+      unsupportedMessage.style.display = 'block';
+    }
 
     startButton.addEventListener('click', async () => {
       startButton.style.display = 'none';
