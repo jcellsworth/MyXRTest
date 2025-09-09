@@ -112,19 +112,27 @@
       unsupportedMessage.style.display = 'block';
     }
 
-    startButton.addEventListener('click', async () => {
+    startButton.addEventListener('click', () => {
       startButton.style.display = 'none';
       arScene.style.display = 'block';
 
       const sceneEl = document.querySelector('a-scene');
-      sceneEl.addEventListener('loaded', () => {
+
+      if (sceneEl.hasLoaded) {
+        console.log("Scene already loaded, starting MindAR...");
         sceneEl.components['mindar-image'].start();
-      });
+      } else {
+        sceneEl.addEventListener('loaded', () => {
+          console.log("Scene loaded, starting MindAR...");
+          sceneEl.components['mindar-image'].start();
+        });
+      }
     });
 
     AFRAME.registerComponent('play-on-target', {
       init: function () {
         this.el.addEventListener('targetFound', () => {
+          console.log("Target found, playing video...");
           video.play();
         });
       }
